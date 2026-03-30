@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm install *)",
+      "Bash(npm ci)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npm publish *)",
+      "Bash(git status)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git push*)",
+      "Bash(git fetch*)",
+      "Bash(git rebase*)",
+      "Bash(git merge*)",
+      "Bash(git branch*)",
+      "Bash(git stash*)",
+      "Bash(git worktree*)",
+      "Bash(docker compose*)",
+      "Bash(find * -name *.js | xargs gzip*)",
+      "Bash(grep -rn*)",
+      "Bash(echo*)",
+      "Bash(cat .env.example)",
+      "Bash(cp .env.example .env)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | bash)",
+      "Bash(cat .env)",
+      "Bash(pnpm*)",
+      "Bash(turbo*)"
+    ]
+  }
+}

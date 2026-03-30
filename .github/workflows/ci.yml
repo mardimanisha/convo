@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npm run tsc --workspaces --if-present
+
+      - name: Lint
+        run: npm run lint --workspaces --if-present
+
+      - name: Test
+        run: npm run test --workspaces --if-present
+        env:
+          REDIS_URL: redis://localhost:6379
+
+      - name: Build
+        run: npm run build --workspaces --if-present
+
+      - name: Bundle size gate
+        run: |
+          BYTES=$(find packages/speech-widget/dist -name "*.js" | xargs gzip -c | wc -c)
+          echo "Bundle size: ${BYTES} bytes (limit: 51200)"
+          if [ "$BYTES" -gt 51200 ]; then
+            echo "❌ Bundle exceeds 50KB gzip limit"
+            exit 1
+          fi
+          echo "✅ Bundle within limit"
+
+      - name: API key check
+        run: |
+          if grep -r "DEEPGRAM_API_KEY" packages/speech-widget/dist 2>/dev/null; then
+            echo "❌ DEEPGRAM_API_KEY found in widget bundle!"
+            exit 1
+          fi
+          echo "✅ No API key in bundle"

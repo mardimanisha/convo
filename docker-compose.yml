@@ -1,0 +1,18 @@
+version: '3.9'
+services:
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    command: redis-server --save "" --appendonly no
+
+  api:
+    build: { context: ./apps/api }
+    ports: ["3000:3000"]
+    environment:
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=debug
+      - PORT=3000
+      - INSTANCE_ID=dev-1
+    depends_on: [redis]
+    volumes: ["./apps/api/src:/app/src"]
