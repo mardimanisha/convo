@@ -1,0 +1,67 @@
+import { z } from 'zod'
+import type { ISessionService, IRateLimitService } from '../infra/types'
+import { RateLimitError } from '../services/RateLimitService'
+
+const createBodySchema = z.object({
+  lang: z.string().optional().default('en-US'),
+})
+
+export interface CreateSessionResult {
+  sessionId: string
+  wsUrl: string
+}
+
+export type CreateSessionError =
+  | { status: 422; message: string }
+  | { status: 429; message: string }
+  | { status: 500; message: string }
+
+// Controllers have no Express imports — they receive typed arguments from routes only.
+export class SessionController {
+  constructor(
+    private readonly sessions: ISessionService,
+    private readonly rateLimit: IRateLimitService,
+    private readonly wsBaseUrl: string
+  ) {}
+
+  async create(
+    clientId: string,
+    body: unknown
+  ): Promise<{ ok: true; data: CreateSessionResult } | { ok: false; error: CreateSessionError }> {
+    const parsed = createBodySchema.safeParse(body)
+    if (!parsed.success) {
+      return { ok: false, error: { status: 422, message: parsed.error.message } }
+    }
+
+    try {
+      await this.rateLimit.checkAndIncrement(clientId)
+    } catch (err) {
+      if (err instanceof RateLimitError) {
+        return { ok: false, error: { status: 429, message: err.message } }
+      }
+      return { ok: false, error: { status: 500, message: 'Internal error' } }
+    }
+
+    const sessionId = await this.sessions.create(clientId, parsed.data.lang)
+    return {
+      ok: true,
+      data: {
+        sessionId,
+        wsUrl: `${this.wsBaseUrl}/ws?sessionId=${sessionId}`,
+      },
+    }
+  }
+
+  async remove(
+    clientId: string,
+    sessionId: string
+  ): Promise<{ ok: true } | { ok: false; error: { status: 404; message: string } }> {
+    const existing = await this.sessions.get(sessionId)
+    if (existing === null) {
+      return { ok: false, error: { status: 404, message: 'Session not found' } }
+    }
+    await this.sessions.delete(sessionId)
+    await this.rateLimit.decrement(clientId)
+    return { ok: true }
+  }
+}
