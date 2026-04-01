@@ -61,13 +61,18 @@ export class SessionController {
   async remove(
     clientId: string,
     sessionId: string
-  ): Promise<{ ok: true } | { ok: false; error: { status: 404; message: string } }> {
+  ): Promise<{ ok: true } | { ok: false; error: { status: 404; message: string } | { status: 500; message: string } }> {
     const existing = await this.sessions.get(sessionId)
     if (existing === null) {
       return { ok: false, error: { status: 404, message: 'Session not found' } }
     }
-    await this.sessions.delete(sessionId)
-    await this.rateLimit.decrement(clientId)
+    try {
+      await this.sessions.delete(sessionId)
+      await this.rateLimit.decrement(clientId)
+    } catch (err) {
+      console.error('Failed to remove session', err)
+      return { ok: false, error: { status: 500, message: 'Failed to remove session' } }
+    }
     return { ok: true }
   }
 }
