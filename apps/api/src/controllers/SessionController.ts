@@ -42,7 +42,13 @@ export class SessionController {
       return { ok: false, error: { status: 500, message: 'Internal error' } }
     }
 
-    const sessionId = await this.sessions.create(clientId, parsed.data.lang)
+    let sessionId: string
+    try {
+      sessionId = await this.sessions.create(clientId, parsed.data.lang)
+    } catch {
+      await this.rateLimit.decrement(clientId)
+      return { ok: false, error: { status: 500, message: 'Internal error' } }
+    }
     return {
       ok: true,
       data: {
