@@ -48,17 +48,26 @@ export class RateLimitService implements IRateLimitService {
       )
     }
 
-    // Atomic check-and-increment for per-minute window
-    const newWindow = await this.redis.incr(windowKey)
-    if (newWindow === 1) {
-      // First open in this window — set the TTL
-      await this.redis.expire(windowKey, WINDOW_TTL)
-    }
-    if (newWindow > MAX_PER_MINUTE) {
-      await this.redis.decr(countKey)
-      throw new RateLimitError(
-        `Client ${clientId} has exceeded ${MAX_PER_MINUTE} session opens per minute`
-      )
+    // Atomic check-and-increment for per-minute window.
+    // Any failure here must roll back the countKey increment above.
+    try {
+      const newWindow = await this.redis.incr(windowKey)
+      if (newWindow === 1) {
+        // First open in this window — set the TTL
+        await this.redis.expire(windowKey, WINDOW_TTL)
+      }
+      if (newWindow > MAX_PER_MINUTE) {
+        await this.redis.decr(countKey)
+        throw new RateLimitError(
+          `Client ${clientId} has exceeded ${MAX_PER_MINUTE} session opens per minute`
+        )
+      }
+    } catch (err) {
+      if (!(err instanceof RateLimitError)) {
+        // Best-effort rollback — swallow decr errors to preserve the original error
+        await this.redis.decr(countKey).catch(() => undefined)
+      }
+      throw err
     }
   }
 
