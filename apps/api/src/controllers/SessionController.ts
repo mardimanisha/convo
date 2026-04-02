@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import type { ISessionService, IRateLimitService } from '../infra/types'
 import { RateLimitError } from '../services/RateLimitService'
+import { baseLogger } from '../infra/logger'
 
 const createBodySchema = z.object({
   lang: z.string().optional().default('en-US'),
@@ -46,7 +47,9 @@ export class SessionController {
     try {
       sessionId = await this.sessions.create(clientId, parsed.data.lang)
     } catch {
-      await this.rateLimit.decrement(clientId)
+      await this.rateLimit.decrement(clientId).catch((err) =>
+        baseLogger.error({ clientId, err }, 'Failed to roll back rate-limit increment after session create failure')
+      )
       return { ok: false, error: { status: 500, message: 'Internal error' } }
     }
     return {
