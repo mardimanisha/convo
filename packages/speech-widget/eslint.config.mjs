@@ -20,7 +20,7 @@ export default [
   {
     files: ['src/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
     languageOptions: {
-      globals: { describe: 'readonly', it: 'readonly', expect: 'readonly', beforeEach: 'readonly', afterEach: 'readonly', beforeAll: 'readonly', afterAll: 'readonly', jest: 'readonly' },
+      globals: globals.jest,
     },
   },
   // ADR-04: ui/ → logic/ → data/ layer dependency rule
