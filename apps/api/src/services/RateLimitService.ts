@@ -73,9 +73,13 @@ export class RateLimitService implements IRateLimitService {
 
   async decrement(clientId: string): Promise<void> {
     const countKey = `ratelimit:${clientId}:session_count`
-    const current = await this.redis.get(countKey)
-    if (current !== null && parseInt(current, 10) > 0) {
-      await this.redis.decr(countKey)
-    }
+    // Atomic: only decrement if current value > 0, preventing underflow under concurrency.
+    await this.redis.eval(
+      `local v = tonumber(redis.call('GET', KEYS[1]))
+       if v and v > 0 then return redis.call('DECR', KEYS[1]) end
+       return nil`,
+      1,
+      countKey
+    )
   }
 }
