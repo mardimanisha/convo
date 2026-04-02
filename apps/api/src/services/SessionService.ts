@@ -2,6 +2,11 @@ import { v4 as uuidv4 } from 'uuid'
 import type { IRedisAdapter, ISessionService, SessionRecord } from '../infra/types'
 
 const SESSION_TTL = parseInt(process.env['SESSION_TTL_SECONDS'] ?? '1800', 10)
+if (!Number.isFinite(SESSION_TTL) || SESSION_TTL <= 0) {
+  throw new Error(
+    `Invalid SESSION_TTL_SECONDS: "${process.env['SESSION_TTL_SECONDS']}" — must be a positive integer`
+  )
+}
 
 export class SessionService implements ISessionService {
   constructor(private readonly redis: IRedisAdapter) {}
