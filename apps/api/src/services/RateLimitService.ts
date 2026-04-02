@@ -9,6 +9,20 @@ const MAX_CONCURRENT = parseInt(process.env['MAX_CONCURRENT_SESSIONS_PER_CLIENT'
 const MAX_PER_MINUTE = parseInt(process.env['MAX_SESSION_OPENS_PER_MINUTE'] ?? '50', 10)
 const WINDOW_TTL = 60 // seconds
 
+if (!Number.isFinite(MAX_CONCURRENT) || MAX_CONCURRENT <= 0) {
+  throw new Error(
+    `Invalid MAX_CONCURRENT_SESSIONS_PER_CLIENT: "${process.env['MAX_CONCURRENT_SESSIONS_PER_CLIENT']}" — must be a positive integer`
+  )
+}
+if (!Number.isFinite(MAX_PER_MINUTE) || MAX_PER_MINUTE <= 0) {
+  throw new Error(
+    `Invalid MAX_SESSION_OPENS_PER_MINUTE: "${process.env['MAX_SESSION_OPENS_PER_MINUTE']}" — must be a positive integer`
+  )
+}
+if (!Number.isFinite(WINDOW_TTL) || WINDOW_TTL <= 0) {
+  throw new Error(`Invalid WINDOW_TTL: ${WINDOW_TTL} — must be a positive integer`)
+}
+
 export class RateLimitError extends Error {
   readonly code = 'RATE_LIMIT_EXCEEDED' as const
 
