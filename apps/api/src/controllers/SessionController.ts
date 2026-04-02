@@ -76,7 +76,7 @@ export class SessionController {
       await this.sessions.delete(sessionId)
       await this.rateLimit.decrement(existing.clientId)
     } catch (err) {
-      console.error('Failed to remove session', err)
+      baseLogger.error({ sessionId, err }, 'Failed to remove session')
       return { ok: false, error: { status: 500, message: 'Failed to remove session' } }
     }
     return { ok: true }
