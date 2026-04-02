@@ -17,4 +17,4 @@ export const sessionService: ISessionService = new SessionService(redisAdapter)
 // RateLimitService uses the concrete Redis client directly for atomic INCR/DECR
 export const rateLimitService: IRateLimitService = new RateLimitService(redisClient)
 
-export const wsBaseUrl = process.env['WS_BASE_URL'] ?? `http://localhost:${process.env['PORT'] ?? 3000}`
+export const wsBaseUrl = process.env['WS_BASE_URL'] ?? `ws://localhost:${process.env['PORT'] ?? 3000}`
