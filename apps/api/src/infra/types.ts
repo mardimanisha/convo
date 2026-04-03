@@ -18,6 +18,13 @@ export type SpeechErrorCode =
   | 'RATE_LIMIT_EXCEEDED'
   | 'INVALID_MESSAGE'
 
+export class SpeechError extends Error {
+  constructor(public readonly code: SpeechErrorCode, message: string) {
+    super(message)
+    this.name = 'SpeechError'
+  }
+}
+
 // ── Session ───────────────────────────────────────────────────────────────────
 
 export interface SessionRecord {
@@ -56,6 +63,12 @@ export interface IRedisAdapter {
   subscribe(channel: string, fn: (msg: string) => void): Promise<void>
   unsubscribe(channel: string): Promise<void>
 }
+
+// ── Wire protocol ────────────────────────────────────────────────────────────
+
+export type ClientControlMessage =
+  | { type: 'session.open';  sessionId: string; lang: string }
+  | { type: 'session.close'; sessionId: string }
 
 // ── Services ──────────────────────────────────────────────────────────────────
 
