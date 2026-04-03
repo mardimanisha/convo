@@ -1,4 +1,4 @@
-// Populated fully in Phase 4. Phase 0: export types only.
+// Types
 export type {
   SpeechConfig,
   RecordingState,
@@ -9,3 +9,10 @@ export type {
   ServerMessage,
 } from './data/types'
 export { SpeechError } from './data/types'
+
+// UI components
+export { SpeechWidget }      from './ui/SpeechWidget'
+export { SpeechButton }      from './ui/SpeechButton'
+export { WaveAnimation }     from './ui/WaveAnimation'
+export { TranscriptPreview } from './ui/TranscriptPreview'
+export { StatusBadge }       from './ui/StatusBadge'

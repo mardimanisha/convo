@@ -11,6 +11,7 @@ interface SpeechContextValue {
   interimText:    string
   finalText:      string
   machineState:   string
+  machineError:   string | null
   send:           (event: { type: string }) => void
 }
 
@@ -32,6 +33,7 @@ export function SpeechProvider({ config, client: injectedClient, children }: Spe
   const [interimText,  setInterimText]  = useState('')
   const [finalText,    setFinalText]    = useState('')
   const [machineState, setMachineState] = useState('idle')
+  const [machineError, setMachineError] = useState<string | null>(null)
 
   // Lazily create the XState actor once
   const actorRef = useRef(
@@ -49,7 +51,10 @@ export function SpeechProvider({ config, client: injectedClient, children }: Spe
     const actor = actorRef.current
     actor.start()
 
-    const sub = actor.subscribe(snap => setMachineState(snap.value as string))
+    const sub = actor.subscribe(snap => {
+      setMachineState(snap.value as string)
+      setMachineError((snap.context as { error: string | null }).error ?? null)
+    })
 
     return () => {
       sub.unsubscribe()
@@ -88,6 +93,7 @@ export function SpeechProvider({ config, client: injectedClient, children }: Spe
       interimText,
       finalText,
       machineState,
+      machineError,
       send:        (event) => actorRef.current.send(event as Parameters<typeof actorRef.current.send>[0]),
     }}>
       {children}
