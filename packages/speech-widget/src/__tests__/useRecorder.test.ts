@@ -7,6 +7,8 @@ import type { ITranscriptClient } from '../data/types'
 
 class MockMediaRecorder {
   static instances: MockMediaRecorder[] = []
+  static isTypeSupported = jest.fn().mockReturnValue(true)
+
   ondataavailable: ((e: { data: Blob }) => void) | null = null
   stream: MediaStream
 

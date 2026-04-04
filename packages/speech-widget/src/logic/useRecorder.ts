@@ -14,9 +14,12 @@ export function useRecorder(client: ITranscriptClient) {
 
     // Prefer opus for smaller chunks; fall back to browser default if the codec
     // isn't compiled into the Chromium build (e.g. some headless CI environments).
-    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-      ? 'audio/webm;codecs=opus'
-      : undefined
+    // Guard with typeof — jsdom (Jest) does not implement isTypeSupported.
+    const mimeType =
+      typeof MediaRecorder.isTypeSupported === 'function' &&
+      MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : undefined
     const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
 
     recorder.ondataavailable = (e: BlobEvent) => {
