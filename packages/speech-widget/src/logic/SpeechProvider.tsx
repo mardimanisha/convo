@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
-import { createActor, fromPromise } from 'xstate'
+import { createActor, fromPromise, type Actor } from 'xstate'
 import { recordingMachine } from './recordingMachine'
 import { useWidgetConfig } from './useWidgetConfig'
 import { useRecorder } from './useRecorder'
@@ -7,7 +7,9 @@ import { WsTransport } from '../data/WsTransport'
 import { TranscriptClient } from '../data/TranscriptClient'
 import type { ITranscriptClient, SpeechConfig, TranscriptEvent } from '../data/types'
 
-// ── Context shape ─────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+type RecordingActor = Actor<typeof recordingMachine>
 
 interface SpeechContextValue {
   client:         ITranscriptClient
@@ -42,8 +44,8 @@ export function SpeechProvider({ config, client: injectedClient, children }: Spe
   // Recorder: getUserMedia + MediaRecorder lifecycle, chunks forwarded to client
   const { start: startRecording, stop: stopRecording } = useRecorder(clientRef.current)
 
-  // Keep config and recorder actions in refs so the XState actor (created once)
-  // always calls the latest versions without stale closure captures.
+  // Keep config and recorder actions in refs so the XState actor always calls
+  // the latest versions without stale closure captures.
   const configRef  = useRef(resolvedConfig)
   const actionsRef = useRef({ start: startRecording, stop: stopRecording })
   configRef.current  = resolvedConfig
@@ -54,10 +56,15 @@ export function SpeechProvider({ config, client: injectedClient, children }: Spe
   const [machineState, setMachineState] = useState('idle')
   const [machineError, setMachineError] = useState<string | null>(null)
 
-  // XState actor wired to real services.
-  // Created once; refs above keep closures fresh without recreating the actor.
-  const actorRef = useRef(
-    createActor(
+  // Hold the running actor in a ref. Created INSIDE useEffect (not useRef) so
+  // React StrictMode's double-mount produces a fresh actor on the second mount.
+  // XState v5 actors are one-way: once stop() is called they cannot be
+  // restarted — storing in useRef and calling start() a second time silently
+  // does nothing, leaving the machine unresponsive to events.
+  const actorRef = useRef<RecordingActor | null>(null)
+
+  useEffect(() => {
+    const actor = createActor(
       recordingMachine.provide({
         actors: {
           // requestPermission: opens WebSocket session then starts MediaRecorder.
@@ -77,11 +84,9 @@ export function SpeechProvider({ config, client: injectedClient, children }: Spe
           }),
         },
       }),
-    ),
-  )
+    )
 
-  useEffect(() => {
-    const actor = actorRef.current
+    actorRef.current = actor
     actor.start()
 
     const sub = actor.subscribe(snap => {
@@ -92,6 +97,7 @@ export function SpeechProvider({ config, client: injectedClient, children }: Spe
     return () => {
       sub.unsubscribe()
       actor.stop()
+      actorRef.current = null
     }
   }, [])
 
@@ -119,7 +125,9 @@ export function SpeechProvider({ config, client: injectedClient, children }: Spe
       finalText,
       machineState,
       machineError,
-      send: (event) => actorRef.current.send(event as Parameters<typeof actorRef.current.send>[0]),
+      send: (event) => {
+        actorRef.current?.send(event as Parameters<RecordingActor['send']>[0])
+      },
     }}>
       {children}
     </SpeechContext.Provider>
