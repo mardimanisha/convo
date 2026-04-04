@@ -21,8 +21,8 @@ export function WaveAnimation() {
       <style>{STYLE}</style>
       <div
         data-testid="wave-animation"
+        role="presentation"
         className="flex items-center gap-0.5 h-4"
-        aria-hidden="true"
       >
         {DELAYS.map((delay, i) => (
           <span
