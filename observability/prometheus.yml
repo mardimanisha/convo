@@ -1,0 +1,12 @@
+# Prometheus scrape configuration for the voice-adapter stack
+# Targets the api service metrics endpoint (GET /metrics via prom-client)
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'voice-adapter-api'
+    static_configs:
+      - targets: ['api:3000']
+    metrics_path: /metrics
