@@ -18,8 +18,7 @@ import { setupFakeMic } from './fixtures/fakeMic'
 // ── Shared setup ──────────────────────────────────────────────────────────────
 
 test.beforeEach(async ({ page, context }) => {
-  // Install fake mic BEFORE goto so the override is in place when React mounts
-  await setupFakeMic(context, page)
+  await setupFakeMic(context)
   await page.goto('/')
 })
 
