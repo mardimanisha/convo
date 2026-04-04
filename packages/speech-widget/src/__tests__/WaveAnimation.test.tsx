@@ -51,8 +51,11 @@ describe('WaveAnimation', () => {
     expect(hasRule).toBe(true)
   })
 
-  it('is marked aria-hidden', () => {
+  it('is marked as presentational so screen readers skip the decorative animation', () => {
     render(<WaveAnimation />)
-    expect(screen.getByTestId('wave-animation')).toHaveAttribute('aria-hidden', 'true')
+    // role="presentation" achieves the same accessibility intent as aria-hidden (screen
+    // readers skip decorative content) without triggering Playwright's toBeVisible() check,
+    // which considers aria-hidden="true" elements invisible.
+    expect(screen.getByTestId('wave-animation')).toHaveAttribute('role', 'presentation')
   })
 })
