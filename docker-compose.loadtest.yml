@@ -1,0 +1,61 @@
+# docker-compose.loadtest.yml — Two-instance load test stack (P5-3)
+#
+# Use this file for load testing ONLY. For local development, use the
+# default docker-compose.yml (single api instance, port 3000 exposed).
+#
+# IMPORTANT: Must run with --scale api=2 to validate ADR-06 (Redis Pub/Sub
+# reconnect scenario). A single-instance run does NOT validate horizontal scaling.
+#
+# Usage:
+#   docker compose -f docker-compose.loadtest.yml up --scale api=2 -d
+#   k6 run --env WS_URL=ws://localhost/ws load-test/k6.js
+#   docker compose -f docker-compose.loadtest.yml down
+#
+# Pass criteria (NF-01, NF-03, NF-04):
+#   p95 transcript latency  < 800ms
+#   memory per session      < 100KB   (monitor via GET /metrics or docker stats)
+#   connection errors       = 0
+
+version: '3.9'
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    # In-memory only — no persistence overhead during load test
+    command: redis-server --save "" --appendonly no --maxmemory 512mb --maxmemory-policy allkeys-lru
+    # No host port — internal access only
+
+  api:
+    build:
+      context: ./apps/api
+    environment:
+      - REDIS_URL=redis://redis:6379
+      # LOG_LEVEL=warn suppresses per-request pino output during the load test.
+      # Switch to 'info' for debugging individual sessions.
+      - LOG_LEVEL=warn
+      - PORT=3000
+      # HOSTNAME is set by Docker per container — gives each replica a unique INSTANCE_ID
+      - INSTANCE_ID=${HOSTNAME}
+      # MOCK_DEEPGRAM=true avoids needing a real Deepgram key for infrastructure testing.
+      # Set to false and provide DEEPGRAM_API_KEY for a full end-to-end load test.
+      - MOCK_DEEPGRAM=${MOCK_DEEPGRAM:-true}
+      - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY:-}
+      - MAX_CONCURRENT_SESSIONS_PER_CLIENT=${MAX_CONCURRENT_SESSIONS_PER_CLIENT:-10000}
+      - MAX_SESSION_OPENS_PER_MINUTE=${MAX_SESSION_OPENS_PER_MINUTE:-100000}
+    depends_on:
+      redis:
+        condition: service_started
+    # No host port binding — nginx handles all inbound traffic.
+    # Allows docker compose --scale api=2 without port conflicts.
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - api
+    # nginx must restart after api replicas are up so upstream DNS resolves
+    restart: on-failure

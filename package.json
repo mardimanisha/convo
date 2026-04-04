@@ -1,12 +1,20 @@
 {
   "name": "voice-adapter",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "build":   "npm run build  --workspaces --if-present",
-    "test":    "npm run test   --workspaces --if-present",
-    "lint":    "npm run lint   --workspaces --if-present",
-    "tsc":     "npm run tsc    --workspaces --if-present",
-    "dev:api": "npm run dev    --workspace=apps/api"
+    "build": "npm run build  --workspaces --if-present",
+    "test": "npm run test   --workspaces --if-present",
+    "lint": "npm run lint   --workspaces --if-present",
+    "tsc": "npm run tsc    --workspaces --if-present",
+    "dev:api":  "npm run dev    --workspace=apps/api",
+    "dev:demo": "vite demo --port 5173",
+    "test:pw":  "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
   }
 }

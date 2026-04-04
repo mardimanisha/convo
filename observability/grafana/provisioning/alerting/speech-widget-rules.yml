@@ -1,0 +1,69 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: speech-widget-alerts
+    folder: Voice Adapter
+    interval: 1m
+    rules:
+      # NF-01: p95 transcript latency must be < 800ms
+      - uid: latency-p95-alert
+        title: Transcript Latency p95 > 800ms
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: histogram_quantile(0.95, rate(transcript_latency_ms_bucket[2m]))
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [800]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+        for: 2m
+        labels:
+          severity: warning
+          nf: NF-01
+        annotations:
+          summary: Transcript latency p95 exceeds 800ms threshold
+          description: "p95 transcript latency is {{ $value }}ms — NF-01 requires < 800ms"
+
+      # NF-04: Alert when active connections approach the 5,000 session target
+      - uid: connections-high-alert
+        title: Active WebSocket Connections > 4500
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            model:
+              expr: ws_connections_active
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              conditions:
+                - evaluator:
+                    params: [4500]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [A]
+        for: 1m
+        labels:
+          severity: warning
+          nf: NF-04
+        annotations:
+          summary: Active WebSocket connections approaching capacity
+          description: "{{ $value }} active connections — nearing 5,000 session ceiling (NF-04)"

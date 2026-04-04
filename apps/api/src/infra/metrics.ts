@@ -1,6 +1,11 @@
-import { Registry, Gauge, Histogram, Counter } from 'prom-client'
+import { Registry, Gauge, Histogram, Counter, collectDefaultMetrics } from 'prom-client'
 
 export const registry = new Registry()
+
+// Register default Node.js process metrics (process_resident_memory_bytes,
+// process_cpu_seconds_total, event loop lag, etc.) on the custom registry.
+// Required for Panel 5 of the Grafana dashboard (NF-03 memory per instance).
+collectDefaultMetrics({ register: registry })
 
 export const wsConnectionsActive = new Gauge({
   name: 'ws_connections_active',
