@@ -27,7 +27,18 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: [
+            // Required for getUserMedia to work in headless Chromium on Linux CI.
+            // Without these flags, getUserMedia either blocks on a permission dialog
+            // or returns no devices because there's no physical audio hardware.
+            '--use-fake-ui-for-media-stream',    // auto-accept permission prompts
+            '--use-fake-device-for-media-stream', // provide a fake audio/video device
+          ],
+        },
+      },
     },
   ],
 

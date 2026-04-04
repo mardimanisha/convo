@@ -10,8 +10,14 @@ export function useRecorder(client: ITranscriptClient) {
   const recorderRef = useRef<MediaRecorder | null>(null)
 
   const start = useCallback(async () => {
-    const stream   = await navigator.mediaDevices.getUserMedia({ audio: true })
-    const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' })
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+
+    // Prefer opus for smaller chunks; fall back to browser default if the codec
+    // isn't compiled into the Chromium build (e.g. some headless CI environments).
+    const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : undefined
+    const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
 
     recorder.ondataavailable = (e: BlobEvent) => {
       if (e.data.size > 0) {

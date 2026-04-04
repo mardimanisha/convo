@@ -17,28 +17,40 @@ import type { Page, BrowserContext } from '@playwright/test'
  */
 export async function installFakeMic(page: Page): Promise<void> {
   await page.addInitScript(() => {
-    Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
-      writable: true,
-      configurable: true,
-      value: async (_constraints: MediaStreamConstraints): Promise<MediaStream> => {
-        const ctx = new AudioContext({ sampleRate: 16_000 })
-        const osc = ctx.createOscillator()
-        const dst = ctx.createMediaStreamDestination()
+    // Bail out if mediaDevices isn't exposed (older browsers, non-secure contexts).
+    // The --use-fake-device-for-media-stream Chrome flag provides a real fake device
+    // anyway, so this override is a belt-and-suspenders extra for local dev.
+    if (!navigator.mediaDevices) return
 
-        // 440 Hz tone — inaudible to the test runner, valid to MediaRecorder
-        osc.type = 'sine'
-        osc.frequency.value = 440
-        osc.connect(dst)
-        osc.start()
+    const fakeFn = async (_constraints: MediaStreamConstraints): Promise<MediaStream> => {
+      const ctx = new AudioContext()
+      const osc = ctx.createOscillator()
+      const dst = ctx.createMediaStreamDestination()
 
-        // Resume context in case Chrome's autoplay policy suspended it
-        if (ctx.state === 'suspended') {
-          await ctx.resume()
-        }
+      osc.type = 'sine'
+      osc.frequency.value = 440
+      osc.connect(dst)
+      osc.start()
 
-        return dst.stream
-      },
-    })
+      // Resume context — required when Chrome's autoplay policy suspends it.
+      // In headless mode with --use-fake-ui-for-media-stream this is a no-op.
+      if (ctx.state === 'suspended') {
+        await ctx.resume()
+      }
+
+      return dst.stream
+    }
+
+    // Prefer direct assignment over Object.defineProperty — more reliable across
+    // Chromium versions and headless security contexts.
+    try {
+      navigator.mediaDevices.getUserMedia = fakeFn
+    } catch {
+      // Fallback: some strict contexts disallow direct assignment on the prototype chain
+      Object.defineProperty(navigator.mediaDevices, 'getUserMedia', {
+        writable: true, configurable: true, value: fakeFn,
+      })
+    }
   })
 }
 
