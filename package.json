@@ -1,5 +1,5 @@
 {
-  "name": "@convo/speech-widget",
+  "name": "speech-widget",
   "private": true,
   "workspaces": [
     "apps/*",
