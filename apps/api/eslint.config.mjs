@@ -18,6 +18,7 @@ export default [
       ...tsPlugin.configs.recommended.rules,
       'no-console': 'error',
       'no-undef': 'off', // TypeScript's type-checker handles undefined references
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
   {
@@ -31,6 +32,7 @@ export default [
       ...tsPlugin.configs.recommended.rules,
       'no-console': 'error',
       'no-undef': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
   },
 ]
